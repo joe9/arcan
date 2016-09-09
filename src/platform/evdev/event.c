@@ -37,6 +37,8 @@
 #include <signal.h>
 #include <sys/inotify.h>
 
+#include "hmd.c"
+
 /*
  * scan / probe a node- dir (ENVV overridable)
  */
@@ -1214,7 +1216,8 @@ static void got_device(struct arcan_evctx* ctx, int fd, const char* path)
 
 void platform_event_rescan_idev(struct arcan_evctx* ctx)
 {
-/* rescan is not needed here as we check inotify while polling */
+	check_hmd();
+
 	if (!gstate.init)
 		gstate.init = true;
 	else
@@ -1890,6 +1893,7 @@ void platform_event_init(arcan_evctx* ctx)
 {
 	gstate.notify = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
 	init_keyblut();
+	init_hmd();
 
 	gstate.tty = find_tty();
 
