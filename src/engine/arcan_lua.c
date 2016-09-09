@@ -9965,6 +9965,8 @@ static inline const char* fsrvtos(enum ARCAN_SEGID ink)
 	case SEGID_WIDGET: return "widget";
 	case SEGID_ACCESSIBILITY: return "accessibility";
 	case SEGID_CLIPBOARD_PASTE: return "clipboard-paste";
+	case SEGID_BRIDGE: return "bridge";
+	case SEGID_BRIDGE_WAYLAND: return "wayland-surface";
 	case SEGID_UNKNOWN: return "unknown";
 	case SEGID_LIM: break;
 	}

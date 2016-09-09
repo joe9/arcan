@@ -182,6 +182,12 @@ enum ARCAN_SEGID {
  */
 	SEGID_WIDGET,
 
+/*
+ * Monitoring / control interface for bridging other APIs
+ */
+	SEGID_BRIDGE,
+	SEGID_BRIDGE_WAYLAND,
+
 /* Can always be terminated without risk, may be stored as part of debug format
  * in terms of unexpected termination etc. */
 	SEGID_DEBUG,
