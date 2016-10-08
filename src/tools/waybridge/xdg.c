@@ -1,8 +1,3 @@
-static void xdg_destroy(struct wl_client* cl, struct wl_resource* res)
-{
-	trace("xdg_destroy()");
-}
-
 static void zxdg_pos_destroy(struct wl_client* cl, struct wl_resource* res)
 {
 	trace("zxdg_positioner_destroy()");
@@ -54,14 +49,50 @@ static void xdg_positioner(struct wl_client* cl, struct wl_resource* res)
 	trace("xdg_positioner()");
 }
 
-static void xdg_get_surface(struct wl_client* wl,
+static void xdg_surf_destroy(struct wl_client* cl, struct wl_resource* res)
+{
+	trace("xdg_surf_destroy()");
+}
+
+struct xdg_surface_interface xdg_surf_if {
+	.destroy = xdg_surf_destroy,
+	.set_parent = xdg_surf_title,
+	.set_app_id = xdg_surf_app_id,
+	.show_window_menu = xdg_wnd_menu,
+	.move = xdg_surf_move,
+	.resize = xdg_surf_resize,
+	.set_max_size = xdg_surf_size,
+	.set_min_size = xdg_surf_min_sz,
+	.set_maximized = xdg_surf_maximize,
+	.unset_maximized = xdg_surf_demaximize,
+	.set_fullscreen = xdg_surf_fs,
+	.unset_fullscreen = xdg_surf_defs,
+	.set_minimized = xdg_surf_minimize
+};
+
+static void xdg_get_surface(struct wl_client* cl,
 	struct wl_resource* res, uint32_t id, struct wl_resource* surf)
 {
 	trace("xdg_get_surface(%"PRIu32")", id);
+	struct bridge_surface* new_surf = malloc(sizeof(struct bridge_surface));
+	memset(new_surf, '\0', sizeof(struct bridge_surface));
+	new_surf->res = wl_resource_create(client, &wl_surface_interface,
+		wl_resource_get_version(resource), id);
+
+	wl_resource_set_implementation(new_surf->res,
+		&xdg_surf_if, new_surf, xdg_surf_destroy);
+
+	new_surf->cl = find_client(cl);
+	wl_list_insert(&wl.cl, &new_surf->link);
 }
 
 static void xdg_pong(struct wl_client* wl,
 	struct wl_resource* res, uint32_t serial)
 {
 	trace("xdg_pong(%"PRIu32")", serial);
+}
+
+static void xdg_destroy(struct wl_client* cl, struct wl_resource* res)
+{
+	trace("xdg_destroy()");
 }

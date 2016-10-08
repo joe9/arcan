@@ -137,7 +137,7 @@ static struct wl_compositor_interface compositor_if = {
 };
 
 #include "shell.c"
-static struct wl_shell_surface_interface shell_if = {
+static struct wl_shell_surface_interface shell_surface_if = {
 	.pong = ssurf_pong,
 	.move = ssurf_move,
 	.resize = ssurf_resize,
@@ -148,6 +148,19 @@ static struct wl_shell_surface_interface shell_if = {
 	.set_maximized = ssurf_maximized,
 	.set_title = ssurf_title,
 	.set_class = ssurf_class
+};
+
+static void shell_get_surface(struct wl_client* cl,
+	struct wl_resource* res, uint32_t id, struct wl_resource* surface)
+{
+	trace("shell_get_surface");
+	struct wl_resource* surf = wl_resource_create(cl,
+		&wl_shell_surface_interface, 1, id);
+	wl_resource_set_implementation(surf, &shell_surface_if, NULL, NULL);
+}
+
+static struct wl_shell_interface shell_if = {
+	.get_shell_surface = shell_get_surface
 };
 
 #include "seat.c"
@@ -162,8 +175,8 @@ static struct zxdg_shell_v6_interface xdg_shell_if = {
 	.destroy = xdg_destroy,
 	.create_positioner = xdg_positioner,
 	.get_xdg_surface = xdg_get_surface,
-	.pong = xdg_pong
-/* destroy, use_unstable_version, get_xdg_surface, get_xdg_popup, xdg_shell_pong */
+	.pong = xdg_pong,
+	.use_unstable_version = xdg_unstable
 };
 
 static void bind_comp(struct wl_client *client,
@@ -192,7 +205,7 @@ static void bind_xdg(struct wl_client* client,
 	trace("wl_bind(xdg %d:%d)", version, id);
 	struct wl_resource* res = wl_resource_create(client,
 		&zxdg_shell_v6_interface, version, id);
-	wl_resource_set_implementation(res, &shell_if, NULL, NULL);
+	wl_resource_set_implementation(res, &xdg_shell_if, NULL, NULL);
 }
 
 static void bind_shell(struct wl_client* client,
@@ -201,7 +214,7 @@ static void bind_shell(struct wl_client* client,
 	trace("wl_bind(shell %d:%d)", version, id);
 	struct wl_resource* res = wl_resource_create(client,
 		&wl_shell_surface_interface, version, id);
-	wl_resource_set_implementation(res, &xdg_shell_if, NULL, NULL);
+	wl_resource_set_implementation(res, &shell_if, NULL, NULL);
 }
 
 int main(int argc, char* argv[])
@@ -238,6 +251,10 @@ int main(int argc, char* argv[])
 	wl_list_init(&wl.cl);
 	wl_list_init(&wl.surf);
 
+/*
+ * FIXME: need a user config- way to set which interfaces should be
+ * enabled and which should be disabled
+ */
 	wl_display_add_socket_auto(wl.disp);
 	wl_global_create(wl.disp, &wl_compositor_interface, 3, NULL, &bind_comp);
 	wl_global_create(wl.disp, &wl_shell_interface, 1, NULL, &bind_shell);
