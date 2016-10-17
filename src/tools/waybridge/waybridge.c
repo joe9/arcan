@@ -5,18 +5,17 @@
  * 3. get the normal details (move, resize, ...)
  * 4. get accelerated handle bridging to work
  * 5. multiple clients
- * 6.
+ * 6. *** xdg
  */
 #define WANT_ARCAN_SHMIF_HELPER
 #include <arcan_shmif.h>
 #include <wayland-server.h>
-#include "xdg-shell-v6.h"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
 static inline void trace(const char* msg, ...)
 {
-va_list args;
+	va_list args;
 	va_start( args, msg );
 		vfprintf(stderr,  msg, args );
 		fprintf(stderr, "\n");
@@ -170,6 +169,7 @@ static struct wl_seat_interface seat_if = {
 	.get_touch = seat_touch
 };
 
+/*
 #include "xdg.c"
 static struct zxdg_shell_v6_interface xdg_shell_if = {
 	.destroy = xdg_destroy,
@@ -178,6 +178,7 @@ static struct zxdg_shell_v6_interface xdg_shell_if = {
 	.pong = xdg_pong,
 	.use_unstable_version = xdg_unstable
 };
+ */
 
 static void bind_comp(struct wl_client *client,
 	void *data, uint32_t version, uint32_t id)
@@ -199,7 +200,8 @@ static void bind_seat(struct wl_client *client,
 		WL_SEAT_CAPABILITY_KEYBOARD | WL_SEAT_CAPABILITY_TOUCH);
 }
 
-static void bind_xdg(struct wl_client* client,
+/*
+ * static void bind_xdg(struct wl_client* client,
 	void* data, uint32_t version, uint32_t id)
 {
 	trace("wl_bind(xdg %d:%d)", version, id);
@@ -207,6 +209,7 @@ static void bind_xdg(struct wl_client* client,
 		&zxdg_shell_v6_interface, version, id);
 	wl_resource_set_implementation(res, &xdg_shell_if, NULL, NULL);
 }
+ */
 
 static void bind_shell(struct wl_client* client,
 	void *data, uint32_t version, uint32_t id)
@@ -259,7 +262,7 @@ int main(int argc, char* argv[])
 	wl_global_create(wl.disp, &wl_compositor_interface, 3, NULL, &bind_comp);
 	wl_global_create(wl.disp, &wl_shell_interface, 1, NULL, &bind_shell);
 	wl_global_create(wl.disp, &wl_seat_interface, 1, NULL, &bind_seat);
-	wl_global_create(wl.disp, &zxdg_shell_v6_interface, 1, NULL, &bind_xdg);
+/* wl_global_create(wl.disp, &zxdg_shell_v6_interface, 1, NULL, &bind_xdg); */
 
 /* FIXME: (gl) bind_display(backend_get_egl_display(), wl.disp); */
 	wl_display_init_shm(wl.disp);
