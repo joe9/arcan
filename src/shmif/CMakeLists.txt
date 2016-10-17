@@ -1,4 +1,4 @@
-#
+
 # This is used by the main arcan build system to define the shmif platform
 # and install targets, but also for some external projects that need to
 # do an in-source build of shmif- and its platform (automated build/
@@ -11,7 +11,9 @@
 # Targets:
 # arcan_shmif
 # arcan_shmif_int
+# arcan_shmif_tui
 # arcan_shmif_ext
+# arcan_shmif_tuiext
 # arcan_shmif_intext
 #
 # Installs: (if ARCAN_SOURCE_DIR is not set)
@@ -37,6 +39,7 @@ set (SHMIF_HEADERS
 	${ASD}/shmif/arcan_shmif_control.h
 	${ASD}/shmif/arcan_shmif_interop.h
 	${ASD}/shmif/arcan_shmif_event.h
+	${ASD}/shmif/arcan_shmif_tui.h
 	${ASD}/shmif/arcan_shmif.h
 )
 
@@ -84,10 +87,54 @@ set_property(SOURCE ${ASD}/platform/posix/fdpassing.c
 set_property(SOURCE ${ASD}/platform/posix/fdpassing.c
 	APPEND PROPERTY COMPILE_DEFINITIONS NONBLOCK_RECV)
 
+#
+# FIXME:
+# We should have a linker script here that filters out all the non-TUI defined
+# symbols so we don't collide with programs linking TSM* (however unlikely)
+#
+set(SHMIF_TUI_SOURCES
+	${ASD}/shmif/tui/tui.c
+	${ASD}/shmif/tui/tsm_screen.c
+	${ASD}/shmif/tui/tsm_unicode.c
+	${ASD}/shmif/tui/shl_htable.c
+	${ASD}/shmif/tui/wcwidth.c
+	${ASD}/engine/arcan_ttf.c
+)
+
+set_property(SOURCE ${ASD}/engine/arcan_ttf.c
+	APPEND PROPERTY COMPILE_DEFINITIONS SHMIF_TTF)
+
+set(TARGET_LIST arcan_shmif arcan_shmif_int arcan_shmif_ext arcan_shmif_intext arcan_shmif_tui)
+
 add_library(arcan_shmif_int STATIC ${SHMIF_SOURCES} ${SHMIF_PLATFORM})
 add_library(arcan_shmif SHARED ${SHMIF_SOURCES} ${SHMIF_PLATFORM})
 add_library(arcan_shmif_ext SHARED ${SHMIF_EXT_SOURCES})
 add_library(arcan_shmif_intext SHARED ${SHMIF_EXT_SOURCES})
+
+# somewhat messy, if the engine is building a static freetype version we should
+# use that one and provide a tui to match, but we should also try and provide a
+# dynamic one.
+if (STATIC_FREETYPE)
+	add_library(arcan_shmif_tui STATIC ${SHMIF_TUI_SOURCES})
+	target_link_libraries(arcan_shmif_tui PRIVATE ${STDLIB} ${FREETYPE_DEFAULT_LIBRARIES})
+	find_package(Freetype QUIET)
+	if (FREETYPE_FOUND)
+		add_library(arcan_shmif_tuiext SHARED ${SHMIF_TUI_SOURCES})
+		target_link_libraries(arcan_shmif_tuiext PRIVATE ${STDLIB} arcan_shmif ${FREETYPE_LIBRARIES})
+		set_target_properties(arcan_shmif_tuiext PROPERTIES
+			COMPILE_FLAGS -fPIC
+			OUTPUT_NAME arcan_shmif_tui
+			VERSION ${ASHMIF_MAJOR}.${ASHMIF_MINOR}
+		)
+		set(TARGET_LIST ${TARGET_LIST} arcan_shmif_tuiext)
+	else()
+		amsg("${CL_YEL}only static freetype found, dynamic shmif_tui disabled ${CL_RST}")
+	endif()
+else()
+	add_library(arcan_shmif_tui SHARED ${SHMIF_TUI_SOURCES})
+	target_link_libraries(arcan_shmif_tui PRIVATE ${STDLIB} arcan_shmif ${FREETYPE_LIBRARIES})
+	set_target_properties(arcan_shmif_tui PROPERTIES VERSION ${ASHMIF_MAJOR}.${ASHMIF_MINOR})
+endif()
 
 target_link_libraries(arcan_shmif PRIVATE ${STDLIB})
 target_link_libraries(arcan_shmif_int PRIVATE ${STDLIB})
@@ -96,6 +143,10 @@ target_link_libraries(arcan_shmif_intext PRIVATE ${STDLIB} ${VIDEO_LIBRARIES})
 
 target_include_directories(arcan_shmif_ext PRIVATE ${INCLUDE_DIRS})
 target_include_directories(arcan_shmif_intext PRIVATE ${INCLUDE_DIRS})
+target_include_directories(arcan_shmif_tui PRIVATE
+	${INCLUDE_DIRS} ${ASD}/frameserver ${ASD}/shmif)
+target_include_directories(arcan_shmif_tuiext PRIVATE
+	${INCLUDE_DIRS} ${ASD}/frameserver ${ASD}/shmif)
 
 # note that we enable fpic for the static here as some
 # subdirectores need to pull it in as part of building a shared library
@@ -135,7 +186,7 @@ target_include_directories(arcan_shmif_int PRIVATE ${ASD}/shmif)
 target_include_directories(arcan_shmif PRIVATE ${ASD}/shmif)
 
 if (NOT ARCAN_SOURCE_DIR)
-	install(TARGETS arcan_shmif arcan_shmif_int arcan_shmif_ext arcan_shmif_intext
+	install(TARGETS ${TARGET_LIST}
 		LIBRARY DESTINATION ${ASHMIF_INSTPATH}
 		ARCHIVE DESTINATION ${ASHMIF_INSTPATH}
 	)

@@ -175,6 +175,8 @@ struct frameserver_envp {
 	bool preserve_env;
 
 	int init_w, init_h;
+	size_t prequeue_sz;
+	arcan_event** prequeue_events;
 
 	union {
 		struct {

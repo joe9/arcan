@@ -46,7 +46,7 @@
 typedef struct _TTF_Font TTF_Font;
 
 typedef struct {
-    uint8_t r, g, b;
+	uint8_t r, g, b;
 } TTF_Color;
 
 
@@ -67,11 +67,11 @@ TTF_Font* TTF_OpenFontIndexRW(FILE* src, int freesrc, int ptsize, long index);
 TTF_Font* TTF_OpenFontFD(int fd, int ptsize);
 
 /* Set and retrieve the font style */
-#define TTF_STYLE_NORMAL	0x00
-#define TTF_STYLE_BOLD		0x01
-#define TTF_STYLE_ITALIC	0x02
-#define TTF_STYLE_UNDERLINE	0x04
-#define TTF_STYLE_STRIKETHROUGH	0x08
+#define TTF_STYLE_NORMAL 0x00
+#define TTF_STYLE_BOLD 0x01
+#define TTF_STYLE_ITALIC 0x02
+#define TTF_STYLE_UNDERLINE 0x04
+#define TTF_STYLE_STRIKETHROUGH 0x08
 int TTF_GetFontStyle(const TTF_Font *font);
 void TTF_SetFontStyle(TTF_Font *font, int style);
 int TTF_GetFontOutline(const TTF_Font *font);
@@ -95,12 +95,12 @@ void TTF_SetFontHinting(TTF_Font *font, int hinting);
 int TTF_FontHeight(const TTF_Font *font);
 
 /* Get the offset from the baseline to the top of the font
-  This is a positive value, relative to the baseline.
+ * This is a positive value, relative to the baseline.
  */
 int TTF_FontAscent(const TTF_Font *font);
 
 /* Get the offset from the baseline to the bottom of the font
-  This is a negative value, relative to the baseline.
+ * This is a negative value, relative to the baseline.
  */
 int TTF_FontDescent(const TTF_Font *font);
 
@@ -123,8 +123,8 @@ char* TTF_FontFaceStyleName(const TTF_Font *font);
 int TTF_GlyphIsProvided(const TTF_Font *font, uint16_t ch);
 
 /* Get the metrics (dimensions) of a glyph
-  To understand what these metrics mean, here is a useful link:
-  http://freetype.sourceforge.net/freetype2/docs/tutorial/step2.html
+ * To understand what these metrics mean, here is a useful link:
+ * http://freetype.sourceforge.net/freetype2/docs/tutorial/step2.html
  */
 int TTF_GlyphMetrics(TTF_Font *font, uint16_t ch, int *minx,
 	int *maxx, int *miny, int *maxy, int *advance);
@@ -140,11 +140,10 @@ int TTF_SizeUNICODEchain(TTF_Font **font, size_t n,
 
 /* This compilation unit is re-used by some frameservers as well,
  * in order to not mix and match types we need some trickery */
-#if defined(SHMIF_TTF) || defined(ARCAN_TTF)
 #ifdef SHMIF_TTF
 #define PIXEL shmif_pixel
 #define PACK(R, G, B, A) SHMIF_RGBA(R, G, B, A)
-#elif defined(ARCAN_TTF)
+#else
 #define PIXEL av_pixel
 #define PACK(R, G, B, A) RGBA(R, G, B, A)
 #endif
@@ -179,7 +178,6 @@ bool TTF_RenderUNICODEglyph(PIXEL* dst,
 	bool usebg, bool use_kerning, int style,
 	int* advance, unsigned* prev_index
 );
-#endif
 
 /* Close an opened font file */
 void TTF_CloseFont(TTF_Font *font);

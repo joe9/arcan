@@ -326,10 +326,28 @@ struct arcan_shmif_cont arcan_shmif_open(
 	enum ARCAN_SEGID type, enum ARCAN_FLAGS flags, struct arg_arr**);
 
 /*
+ * Similar to resize_ext, developed to work around some shortcomings
+ * in the initial version without breaking ABI. Adds some improvements
+ * to the register/connect approach.
+ *
+ * use like shmif_open, but pass a prefilled struct like below,
+ * along with its sizeof(struct smif_open_ext)
+ */
+struct shmif_open_ext {
+	enum ARCAN_SEGID type;
+	const char* title;
+	const char* ident;
+	uint64_t guid[2];
+};
+struct arcan_shmif_cont arcan_shmif_open_ext(
+	enum ARCAN_FLAGS flags, struct arg_arr**,
+	struct shmif_open_ext, size_t ext_sz);
+
+/*
  * arcan_shmif_initial can be used to access initial configured
  * settings (see struct arcan_shmif_initial for details). These values
  * are only valid AFTER a successful call to arcan_shmif_open and ONLY
- * until the first _enqeue, _poll or _wait call.
+ * until the first _poll or _wait call.
  *
  * REMEMBER to arcan_shmif_dupfd() on the fonts and render-nodes you
  * want to keep and use as they will be closed, or set the fields to
