@@ -160,6 +160,8 @@ struct devnode {
 		} cursor;
 		struct {
 			unsigned state;
+		   FILE *write_file;
+		   FILE *read_file;
 		} keyboard;
 	};
 /* because in this universe, pretty much any normal input device can
@@ -1156,7 +1158,21 @@ static void got_device(struct arcan_evctx* ctx, int fd, const char* path)
 			node.type = DEVNODE_KEYBOARD;
 			node.keyboard.state = 0;
 
-/* FIX: query current LED states and set corresponding states in the devnode */
+			/* TODO close these file handles properly */
+			char *readname = "/home/j/dev/apps/plan9/test1/out";
+			char *writename = "/home/j/dev/apps/plan9/test1/in";
+			node.keyboard.read_file = fopen(readname, "r");
+			if (!node.keyboard.read_file) {
+			   printf("Couldn't open file %s for reading.\n", readname);
+			}
+
+			node.keyboard.write_file = fopen(writename, "w");
+			if (!node.keyboard.write_file) {
+			   printf("Couldn't open file %s for writing.\n", writename);
+			   fclose(node.keyboard.read_file);
+			}
+
+			/* FIX: query current LED states and set corresponding states in the devnode */
 			struct kbd_repeat kbrv = {0};
 			ioctl(node.handle, KDKBDREP, &kbrv);
 		}
@@ -1308,45 +1324,63 @@ static void defhandler_kbd(struct arcan_evctx* out,
 
 	for (size_t i = 0; i < evs / sizeof(struct input_event); i++){
 		switch(inev[i].type){
-		case EV_KEY:
-		newev.io.input.translated.scancode = inev[i].code;
-		newev.io.input.translated.keysym = lookup_keycode(inev[i].code);
-		newev.io.input.translated.modifiers = node->keyboard.state;
-		update_state(inev[i].code, inev[i].value != 0, &node->keyboard.state);
-/* possible checkpoint for adding other keyboard layout support here */
-		newev.io.subid = inev[i].code;
-		uint16_t code = lookup_character(inev[i].code, node->keyboard.state, true);
-		if (code) to_utf8(code, newev.io.input.translated.utf8);
+		   case EV_KEY:
+		      if (node->keyboard.write_file){
+			 fprintf(node->keyboard.write_file,
+				 "%li,%li,%hu,%hu,%i\n",
+				 inev[i].time.tv_sec,inev[i].time.tv_usec,inev[i].type,inev[i].code,inev[i].value);
+			 fflush(node->keyboard.write_file);
 
-/* virtual terminal switching for press on LCTRL+LALT+Fn. should possibly have
- * more advanced config here to limit # of eligible devices and change
- * combination, and option to disable the thing entirely because it is
- * just terrible */
-		if (gstate.tty != -1 && gstate.sigpipe[0] != -1 &&
-			(node->keyboard.state == (ARKMOD_LALT | ARKMOD_LCTRL)) &&
-			inev[i].code >= KEY_F1 && inev[i].code <= KEY_F10 && inev[i].value != 0){
-			ioctl(gstate.tty, VT_ACTIVATE, inev[i].code - KEY_F1 + 1);
-		}
+			 fscanf(node->keyboard.read_file,"%li,%li,%hu,%hu,%i,%i,%hu,%i,%s\n",
+				&newev.io.input.translated.time.tv_sec,
+				&newev.io.input.translated.time.tv_usec,
+				&newev.io.input.translated.type,
+				&newev.io.input.translated.scancode,
+				&newev.io.input.translated.active,
+				&newev.io.input.translated.keysym,
+				&newev.io.input.translated.modifiers,
+				&newev.io.input.translated.utf32,
+				newev.io.input.translated.utf8);
+		      } else {
+			 newev.io.input.translated.scancode = inev[i].code;
+			 newev.io.input.translated.keysym = lookup_keycode(inev[i].code);
+			 newev.io.input.translated.modifiers = node->keyboard.state;
+			 update_state(inev[i].code, inev[i].value != 0, &node->keyboard.state);
+			 /* possible checkpoint for adding other keyboard layout support here */
+			 newev.io.subid = inev[i].code;
+			 uint16_t code = lookup_character(inev[i].code, node->keyboard.state, true);
+			 if (code) to_utf8(code, newev.io.input.translated.utf8);
 
-/* auto-repeat, may get even if we are not in this state because of broken
- * drivers or failed mode-setting. */
-		if (inev[i].value == 2){
-			if (iodev.period){
-				newev.io.input.translated.active = false;
-				arcan_event_enqueue(out, &newev);
-				newev.io.input.translated.active = true;
-				arcan_event_enqueue(out, &newev);
-			}
-		}
-		else{
-			newev.io.input.translated.active = inev[i].value != 0;
-			arcan_event_enqueue(out, &newev);
-		}
+			 /* virtual terminal switching for press on LCTRL+LALT+Fn. should possibly have
+			  * more advanced config here to limit # of eligible devices and change
+			  * combination, and option to disable the thing entirely because it is
+			  * just terrible */
+		      }
+		      if (gstate.tty != -1 && gstate.sigpipe[0] != -1 &&
+			  (node->keyboard.state == (ARKMOD_LALT | ARKMOD_LCTRL)) &&
+			  inev[i].code >= KEY_F1 && inev[i].code <= KEY_F10 && inev[i].value != 0){
+			 ioctl(gstate.tty, VT_ACTIVATE, inev[i].code - KEY_F1 + 1);
+		      }
 
-		break;
+		      /* auto-repeat, may get even if we are not in this state because of broken
+		       * drivers or failed mode-setting. */
+		      if (inev[i].value == 2){
+			 if (iodev.period){
+			    newev.io.input.translated.active = false;
+			    arcan_event_enqueue(out, &newev);
+			    newev.io.input.translated.active = true;
+			    arcan_event_enqueue(out, &newev);
+			 }
+		      }
+		      else{
+			 newev.io.input.translated.active = inev[i].value != 0;
+			 arcan_event_enqueue(out, &newev);
+		      }
 
-		default:
-		break;
+		      break;
+
+		   default:
+		      break;
 		}
 
 	}

@@ -897,16 +897,20 @@ typedef union arcan_ioevent_data {
 
 	struct {
 /* pressed or not */
-		uint8_t active;
-/* bitmask of key_modifiers */
-		uint16_t modifiers;
-/* possible utf8- match, if known, received events should
- * prefer these, if set. */
-		uint8_t utf8[5];
-/* depending on devid, SDL or X keysym */
-		uint16_t keysym;
-/* propagated device code, for identification and troubleshooting */
-		uint8_t scancode;
+	   uint32_t active;
+	   /* bitmask of key_modifiers */
+	   uint16_t modifiers;
+	   /* possible utf8- match, if known, received events should
+	    * prefer these, if set. */
+	   uint8_t utf8[5];
+	   /* depending on devid, SDL or X keysym */
+	   uint32_t keysym;
+	   /* propagated device code, for identification and troubleshooting */
+	   uint16_t scancode;
+	   /* as in input_event */
+	   struct timeval time;
+	   uint16_t type;
+	   uint32_t utf32;
 	} translated;
 
 } arcan_ioevent_data;
