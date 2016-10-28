@@ -1159,8 +1159,8 @@ static void got_device(struct arcan_evctx* ctx, int fd, const char* path)
 			node.keyboard.state = 0;
 
 			/* TODO close these file handles properly */
-			char *readname = "/home/j/dev/apps/plan9/test1/out";
-			char *writename = "/home/j/dev/apps/plan9/test1/in";
+			char *readname = "/home/j/dev/apps/durden-arcan/kbdfs/out";
+			char *writename = "/home/j/dev/apps/durden-arcan/kbdfs/in";
 			node.keyboard.read_file = fopen(readname, "r");
 			if (!node.keyboard.read_file) {
 			   printf("Couldn't open file %s for reading.\n", readname);
